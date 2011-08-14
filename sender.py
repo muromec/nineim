@@ -7,9 +7,6 @@ kw = {
         "user": os.getenv("USER"),
 }
 
-bus = rbus.RbusRoot("unix!/tmp/ns.%(user)s/nineim" % kw)
-bus.children_types = [ "roster", "chat" ]
-
 jid, passwd = sys.argv[1:3]
 username, host = jid.split("@")
 
@@ -35,7 +32,9 @@ class Client(xmppony.Client):
 
     def get_chat(self, jid):
 
-        jid = jid.getStripped()
+        # FIXME:
+        if not isinstance(jid, basestring):
+            jid = jid.getStripped()
 
         chat = self.chats.get(jid)
 
@@ -56,7 +55,6 @@ class Chat(object):
     def __init__(self, client, jid):
         self._jid = jid
         self.__name__ = jid
-        self._count = 0
 
         self.client = client
 
@@ -64,18 +62,44 @@ class Chat(object):
     def jid(self):
         return self._jid
 
-    @prop
-    def count(self):
-        self.send("increment %d" % self._count)
-        self._count += 1
-
-        return str(self._count)
-
     def send(self, text):
         message = xmppony.Message(self._jid, text)
         message.setAttr('type', 'chat')
 
         self.client.send(message)
+
+    msg = prop(lambda self: "", send)
+
+class Nien(rbus.RbusRoot):
+    ADDR = "unix!/tmp/ns.%(user)s/nineim"
+
+    def __init__(self):
+        kw = {"user": os.getenv("USER")}
+        addr = self.ADDR % kw
+
+        super(Nien, self).__init__(address=addr)
+
+    def _get_ctl(self):
+        return "NANI-NANI"
+
+    def _set_ctl(self, val):
+        args = val.strip().split(" ")
+        cmd = args[0]
+
+        handler = getattr(self, 'handle_%s' % cmd, None)
+
+        if handler:
+            handler(*args[1:])
+
+    ctl = prop(_get_ctl, _set_ctl)
+
+
+    def handle_connect(self, server):
+        print 'connect to %s' % server
+
+
+bus = Nien()
+bus.children_types = [ "roster", "chat" ]
 
 
 client = Client(host, debug=None)
