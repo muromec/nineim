@@ -21,11 +21,16 @@ class Client(xmppony.Client):
 
     def message(self, conn, mess):
         text=mess.getBody()
+        if not text:
+            return
+
+        text = text.encode('utf8')
+
         user=mess.getFrom()
 
         chat = self.get_chat(user)
 
-        bus.put_event("msg %s" % (user,))
+        bus.put_event(text, chat)
 
 
     def get_chat(self, jid):
