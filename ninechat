@@ -1,23 +1,32 @@
 #!/bin/bash
 export IXP_ADDRESS='unix!/tmp/ns.muromec/nineim'
 
+
 jid="$1"
+
+if (! ixpc ls /chat | grep "$jid" -q); then
+    ixpc xwrite /ctl "chat $jid"
+    exit 0
+fi
 
 kbloop() {
     while read msg
     do
+        echo -ne '\033[1A''\033[K'
         ixpc xwrite /chat/$jid/msg "$msg"
         echo "[ $(date +%H:%M:%S) ]" me "->" $msg
     done
 }
 
-
 netloop() {
     ixpc read /chat/$jid/events | while read msg 
     do
-        echo "[ $(date +%H:%M:%S) ]" $jid "->" $msg
+        echo -ne '\033[1B''\033[K'
+        echo $! "[ $(date +%H:%M:%S) ]" $jid "->" $msg
     done
 }
 
 netloop &
 kbloop
+echo 'exiting' $net $!
+pkill -P $!

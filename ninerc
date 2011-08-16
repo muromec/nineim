@@ -6,10 +6,7 @@ ctl() {
     ixpc xwrite /ctl "$*"
 }
 
-cat ~/.nineim/pass | while read cred
-do
-    ctl account ${cred}
-done
+cat ~/.nineim/pass | ixpc write /ctl
 
 ixpc read /events | while read event
 do

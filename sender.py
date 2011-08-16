@@ -101,10 +101,6 @@ class Nien(rbus.RbusRoot):
     ctl = prop(_get_ctl, _set_ctl)
 
 
-    def handle_connect(self, server):
-        print 'connect to %s' % server
-
-
     def handle_chat(self, jid):
         print 'chat with %s' % jid
         client = self.clients[0]
@@ -112,8 +108,6 @@ class Nien(rbus.RbusRoot):
         client.get_chat(jid)
 
     def handle_account(self, jid, pwd):
-        print 'setup account %s with %s' % (jid, pwd)
-
         username, host = jid.split('@', 1)
 
         client = Client(host, debug=None)
