@@ -1,0 +1,29 @@
+#!/bin/sh
+
+export IXP_ADDRESS='unix!/tmp/ns.muromec/nineim'
+
+ctl() {
+    ixpc xwrite /ctl "$*"
+}
+
+cat ~/.nineim/pass | while read cred
+do
+    ctl account ${cred}
+done
+
+ixpc read /events | while read event
+do
+    evtyp=$(echo $event | cut -f 1 -d ' ')
+
+    case $evtyp in
+        chat)
+            jid=$(echo $event | cut -f 2 -d ' ')
+            echo open chat with $jid
+            urxvt -e ~/.nineim/ninechat "$jid" &
+
+            ;;
+        *)
+            echo unhandled $*
+            ;;
+    esac
+done

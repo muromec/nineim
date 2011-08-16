@@ -7,9 +7,6 @@ kw = {
         "user": os.getenv("USER"),
 }
 
-jid, passwd = sys.argv[1:3]
-username, host = jid.split("@")
-
 class prop(property):
     RBUS_PROP = True
 
@@ -40,7 +37,7 @@ class Client(xmppony.Client):
 
         if not chat:
             chat = Chat(self, jid=jid)
-            bus.put_event("new chat %s" % (jid,))
+            bus.put_event("chat %s" % (jid,))
 
             bus.append_child(chat)
 
@@ -77,7 +74,15 @@ class Nien(rbus.RbusRoot):
         kw = {"user": os.getenv("USER")}
         addr = self.ADDR % kw
 
+        self.clients = []
+
         super(Nien, self).__init__(address=addr)
+
+    def run(self):
+        for client in self.clients:
+            client.Process()
+
+        super(Nien, self).run()
 
     def _get_ctl(self):
         return "NANI-NANI"
@@ -90,6 +95,8 @@ class Nien(rbus.RbusRoot):
 
         if handler:
             handler(*args[1:])
+        else:
+            print 'ctl', val
 
     ctl = prop(_get_ctl, _set_ctl)
 
@@ -98,17 +105,31 @@ class Nien(rbus.RbusRoot):
         print 'connect to %s' % server
 
 
+    def handle_chat(self, jid):
+        print 'chat with %s' % jid
+        client = self.clients[0]
+
+        client.get_chat(jid)
+
+    def handle_account(self, jid, pwd):
+        print 'setup account %s with %s' % (jid, pwd)
+
+        username, host = jid.split('@', 1)
+
+        client = Client(host, debug=None)
+        client.connect(server=(host, 5223))
+        client.auth(username, pwd, 'nineim')
+        client.sendInitPresence()
+
+        client.RegisterHandler('message', client.message)
+
+        self.clients.append(client)
+
+
 bus = Nien()
 bus.children_types = [ "roster", "chat" ]
 
 
-client = Client(host, debug=None)
-client.connect(server=(host, 5223))
-client.auth(username, passwd, 'nineim')
-client.sendInitPresence()
-
-client.RegisterHandler('message', client.message)
 
 while True:
-    client.Process()
     bus.run()
